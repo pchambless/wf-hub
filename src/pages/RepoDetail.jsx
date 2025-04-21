@@ -6,7 +6,7 @@ import IssueDetail from '../components/Issues/IssueDetail';
 import { useEffect } from 'react';
 import { setCurrentRepo } from '../store/store';
 
-function RepoDetailPage() {
+function RepoDetail() {
   const { owner, repo } = useParams();
   
   useEffect(() => {
@@ -38,4 +38,4 @@ function RepoDetailPage() {
   );
 }
 
-export default RepoDetailPage;
+export default RepoDetail;

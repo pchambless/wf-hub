@@ -1,5 +1,4 @@
 import createLogger from '../utils/logger';
-import { formatRequirementMarkdown } from '../utils/requirementUtils';
 
 const log = createLogger('DownloadService');
 

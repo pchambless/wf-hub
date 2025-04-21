@@ -6,8 +6,8 @@
   "scripts": {
     "start": "concurrently \"yarn dev\" \"yarn server\"",
     "dev": "vite",
-    "server": "node --trace-warnings server/index.cjs",
-    "start-server": "nodemon --exec \"node server/index.cjs\"",
+    "server": "node --trace-warnings server/index.js",
+    "start-server": "nodemon --exec \"node server/index.js\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -24,6 +24,7 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "fs-extra": "^11.3.0",
+    "mermaid": "^11.6.0",
     "node-fetch": "2",
     "path": "^0.12.7",
     "react": "^19.0.0",
@@ -31,6 +32,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "6.22.3",
     "use-sync-external-store": "^1.5.0",
+    "winston": "^3.17.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

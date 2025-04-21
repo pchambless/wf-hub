@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';  // Remove 'React' since no JSX
 import { configureStore } from '@reduxjs/toolkit';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 import createLogger from './logger';
+import process from 'process';
 
 const log = createLogger('ExternalStore');
 
@@ -67,7 +68,7 @@ const getVars = (vars) => {
   }
 
   return vars.reduce((acc, key) => {
-    if (state.hasOwnProperty(key)) {
+    if (Object.hasOwn(state, key)) {
       acc[key] = state[key];
     }
     return acc;
@@ -76,7 +77,7 @@ const getVars = (vars) => {
 
 const getVar = (variableName) => {
   const state = store.getState();
-  return state.hasOwnProperty(variableName) ? state[variableName] : null;
+  return Object.hasOwn(state, variableName) ? state[variableName] : null;
 };
 
 const setVar = (key, value) => {
@@ -158,7 +159,7 @@ const clearAllVars = () => {
 
 // Rename to follow React hook naming convention
 const usePollVar = (varName, defaultValue = null, interval = 100, debug = false) => {
-  const [value, valueue] = useState(() => {
+  const [value, setValue] = useState(() => {
     const initialValue = getVar(varName);
     return initialValue !== null ? initialValue : defaultValue;
   });
@@ -175,7 +176,7 @@ const usePollVar = (varName, defaultValue = null, interval = 100, debug = false)
     const intervalId = setInterval(() => {
       const currentValue = getVar(varName);
       
-      valueue(prevValue => {
+      setValue(prevValue => {
         if (currentValue !== prevValue) {
           if (debug) {
             log.debug(`${varName} changed via polling`, {

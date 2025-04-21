@@ -1,9 +1,9 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const github = require('./routes/github.cjs'); // Updated path
-const { dirname, join } = require('path');
-const fetch = require('node-fetch');  // You may need to install this
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import process from 'process';
+import router from './routes/github.js';
+import fetch from 'node-fetch';  // You may need to install this
 
 // Load environment variables
 dotenv.config();
@@ -41,7 +41,7 @@ const fetchFromGitHub = async (url) => {
 };
 
 // GitHub API routes
-app.use('/api/github', github);
+app.use('/api/github', router);
 
 // Add direct issues endpoint
 app.get('/api/github/issues/:owner/:repo', async (req, res) => {
@@ -68,13 +68,24 @@ app.get('/api/github/issues/:owner/:repo', async (req, res) => {
   }
 });
 
+// Replace this line:
+let workflow;
+import('./routes/workflow.js').then(module => {
+  workflow = module.default || module;
+  
+  // If you're setting up routes with this module, do it here
+  app.use('/api/workflow', workflow);
+}).catch(err => {
+  console.error('Failed to import workflow module:', err);
+});
+
 // Basic route
 app.get('/', (req, res) => {
   res.send('WhatsFresh GitHub API Server');
 });
 
 // General error handler
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error('Server error:', err);
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
@@ -86,10 +97,12 @@ app.use((req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`GitHub API available at http://localhost:${PORT}/api/github`);
   console.log(`GitHub token ${GITHUB_TOKEN ? 'is' : 'is not'} configured`);
 }).on('error', (err) => {
   console.error('Failed to start server:', err.message);
 });
+
+export default server;

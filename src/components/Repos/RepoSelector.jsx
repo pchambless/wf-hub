@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
   FormControl, 
-  InputLabel, 
   Select, 
   MenuItem, 
   Typography, 
@@ -44,34 +43,49 @@ function RepoSelector() {
     
     if (repo) {
       setSelectedRepo(repoName);
-      setVar('currentRepo', repo);
+      
+      // Fix: Use colon prefix to match usePollVar(':currentRepo') in Requirements.jsx
+      setVar(':currentRepo', repo);
+      
+      // Keep the action name as is - only the variable name needs the colon prefix
       triggerAction('REPO_SELECTED');
+      
       log.info('Repo selected', { repo: repo.name });
+      
+      // Optional: Add console log to verify the correct variable is set
+      console.log(`Set :currentRepo variable to:`, repo);
     }
   };
 
   return (
-    <>
-      <Typography variant="h6" gutterBottom>
-        GitHub Repo
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Typography 
+        variant="body1" 
+        sx={{ 
+          fontWeight: 'medium', 
+          whiteSpace: 'nowrap',
+          color: '#03061c'
+        }}
+      >
+        GitHub Repo:
       </Typography>
       
       {loading ? (
-        <Box display="flex" justifyContent="center" my={2}>
-          <CircularProgress size={24} />
-        </Box>
+        <CircularProgress size={20} sx={{ ml: 2 }} />
       ) : error ? (
-        <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>
+        <Alert severity="error" sx={{ flexGrow: 1 }}>{error}</Alert>
       ) : (
-        <FormControl fullWidth>
-          <InputLabel id="repo-select-label">Repo</InputLabel>
+        <FormControl fullWidth size="small" sx={{ backgroundColor: '#dcfce7', borderRadius: 1 }}>
           <Select
-            labelId="repo-select-label"
-            id="repo-select"
             value={selectedRepo}
-            label="Repo"
             onChange={handleSelectRepo}
-            size="small"
+            displayEmpty
+            sx={{ 
+              '& .MuiSelect-select': { 
+                py: 1,
+                backgroundColor: '#dcfce7' 
+              }
+            }}
           >
             <MenuItem value=""><em>-- Select Repo --</em></MenuItem>
             {repos.map(repo => (
@@ -82,7 +96,7 @@ function RepoSelector() {
           </Select>
         </FormControl>
       )}
-    </>
+    </Box>
   );
 }
 

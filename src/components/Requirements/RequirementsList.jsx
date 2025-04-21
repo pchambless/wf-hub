@@ -15,6 +15,17 @@ function RequirementsList({
   onComment,
   onDownload
 }) {
+  console.log('RequirementsList rendering with:', { 
+    issuesCount: issues?.length || 0,
+    loading,
+    selectedCount: Object.values(selected || {}).filter(Boolean).length
+  });
+  
+  // Log first issue for debugging if available
+  if (issues?.length > 0) {
+    console.log('First issue:', issues[0]);
+  }
+  
   // Calculate if all items are selected
   const allSelected = issues.length > 0 && 
     issues.every(issue => selected[issue.number] === true);

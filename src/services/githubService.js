@@ -71,21 +71,36 @@ export async function fetchRepos() {  // Renamed for consistency
 /**
  * Fetch issues for a specific repository
  */
-export async function fetchIssues(owner, repo) {
-  log.info('Fetching issues', { owner, repo });
+export const fetchIssues = async (owner, repo) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/issues/${owner}/${repo}`);
+    const response = await fetch(`/api/github/issues/${owner}/${repo}`);
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
-    const data = await response.json();
-    log.info('Issues fetched', { count: data.length });
-    return data;
+    
+    let data = await response.json();
+    
+    // Log the raw data
+    console.log('Raw API response:', data);
+    
+    // Transform data if needed to match component expectations
+    // For example, if data isn't an array or needs property remapping
+    if (!Array.isArray(data)) {
+      data = data.issues || [];
+    }
+    
+    // Add any missing properties your components might expect
+    return data.map(issue => ({
+      ...issue,
+      number: issue.number || issue.id, // Ensure number property exists
+      title: issue.title || 'No title',
+      state: issue.state || 'open'
+    }));
   } catch (error) {
-    log.error('Error fetching issues', error);
+    console.error('Error fetching issues:', error);
     throw error;
   }
-}
+};
 
 /**
  * Fetch a specific issue with its details
@@ -207,26 +222,3 @@ export const updateIssue = async (owner, repo, issueNumber, issueData) => {
   }
 };
 
-/**
- * Create a comment on an issue
- */
-export const createIssueComment = async (owner, repo, issueNumber, body) => {
-  try {
-    const response = await fetch(`/api/github/issues/${owner}/${repo}/${issueNumber}/comments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ body })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Error creating comment: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to create comment:', error);
-    throw error;
-  }
-};

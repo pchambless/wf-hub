@@ -1,11 +1,12 @@
-const express = require('express');
-const axios = require('axios');
-const dotenv = require('dotenv');
-const process = require('process');
-const fetch = require('node-fetch');
-const fs = require('fs-extra');
-const path = require('path');
-const { formatRequirementMarkdown } = require('../utils/requirementUtils.cjs');
+import express from 'express';
+import axios from 'axios';
+import dotenv from 'dotenv';
+import process from 'process';
+import fetch from 'node-fetch';
+import fs from 'fs-extra';
+import path from 'path';
+import { formatRequirementMarkdown } from '../utils/requirementUtils.js';
+
 const router = express.Router();
 
 dotenv.config();
@@ -322,4 +323,4 @@ router.patch('/issues/:owner/:repo/:issue_number', async (req, res) => {
 // Add all the other GitHub API routes here
 // Issues details, comments, etc.
 
-module.exports = router; // Use CommonJS exports
+export default router;

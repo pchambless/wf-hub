@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Typography, Paper, Grid, Box, Button, Alert } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DownloadIcon from '@mui/icons-material/Download';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Typography, Paper, Box, Alert, Grid } from '@mui/material';
 import MainLayout from '../layouts/MainLayout';
 import { RequirementsList, RequirementsHeader } from '../components/Requirements';
 import RequirementEditor from '../components/Requirements/RequirementEditor';
@@ -11,15 +9,97 @@ import { fetchIssues } from '../services/githubService';
 import { downloadSelectedIssues } from '../services/downloadService';
 import { useStore } from '../store/store';
 import createLogger from '../utils/logger';
+// Import necessary functions from externalStore
+import { usePollVar, getVar } from '../utils/externalStore';
 
 const log = createLogger('RequirementsPage');
 
-function RequirementsPage() {
+function Requirements() {
   const [issues, setIssues] = useState([]);
   const [selected, setSelected] = useState({});
+  
+  // Use both store mechanisms to ensure we catch the change
   const { currentRepo } = useStore();
+  const externalRepo = usePollVar(':currentRepo', null, 200); // Poll frequently
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Rest of your state...
+
+  // Track the active repo to avoid duplicate fetches
+  const activeRepoRef = useRef(null);
+  
+  const fetchRequirements = useCallback(async (owner, name) => {
+    if (!owner || !name) return;
+    
+    // Skip if we're already using this repo
+    const repoKey = `${owner}/${name}`;
+    if (activeRepoRef.current === repoKey) {
+      log.info(`Already showing ${repoKey}, skipping fetch`);
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      log.info(`Fetching issues for ${owner}/${name}`);
+      const fetchedIssues = await fetchIssues(owner, name);
+      
+      // Update our active repo reference
+      activeRepoRef.current = repoKey;
+      
+      console.log('Fetched issues:', fetchedIssues);
+      
+      setIssues(fetchedIssues);
+      log.info(`Loaded ${fetchedIssues.length} issues for ${owner}/${name}`);
+      
+      // Clear selections when repo changes
+      setSelected({});
+    } catch (err) {
+      setError(`Failed to load requirements: ${err.message}`);
+      log.error('Failed to load requirements', err);
+      setIssues([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Monitor the external store for repo changes
+  useEffect(() => {
+    if (externalRepo?.owner && externalRepo?.name) {
+      log.info(`External repo changed to: ${externalRepo.owner}/${externalRepo.name}`);
+      fetchRequirements(externalRepo.owner, externalRepo.name);
+    }
+  }, [externalRepo, fetchRequirements]);
+
+  // Also monitor the Redux store for repo changes
+  useEffect(() => {
+    if (currentRepo?.owner && currentRepo?.name) {
+      log.info(`Store repo changed to: ${currentRepo.owner}/${currentRepo.name}`);
+      fetchRequirements(currentRepo.owner, currentRepo.name);
+    }
+  }, [currentRepo, fetchRequirements]);
+
+  // Also directly subscribe to REPO_SELECTED actions
+  useEffect(() => {
+    const handleRepoSelectedAction = () => {
+      // Get the latest repo directly from external store
+      const latestRepo = getVar(':currentRepo');
+      if (latestRepo?.owner && latestRepo?.name) {
+        log.info(`Action triggered repo change: ${latestRepo.owner}/${latestRepo.name}`);
+        fetchRequirements(latestRepo.owner, latestRepo.name);
+      }
+    };
+    
+    // Set up subscription to REPO_SELECTED action
+    document.addEventListener('REPO_SELECTED', handleRepoSelectedAction);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('REPO_SELECTED', handleRepoSelectedAction);
+    };
+  }, [fetchRequirements]);
   
   // Download status
   const [downloadStatus, setDownloadStatus] = useState({ 
@@ -41,29 +121,6 @@ function RequirementsPage() {
   // State for other modals
   const [previewModal, setPreviewModal] = useState({ open: false, issueNumber: null });
   const [commentModal, setCommentModal] = useState({ open: false, issueNumber: null });
-
-  // Fetch issues when repo changes
-  useEffect(() => {
-    if (currentRepo) {
-      fetchRequirements(currentRepo.owner, currentRepo.name);
-    }
-  }, [currentRepo]);
-
-  // Fetch requirements
-  const fetchRequirements = async (owner, name) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchIssues(owner, name);
-      setIssues(data);
-      log.info(`Loaded ${data.length} issues for ${owner}/${name}`);
-    } catch (err) {
-      setError(`Failed to load requirements: ${err.message}`);
-      log.error('Failed to load requirements', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle selection of items
   const handleSelect = (id, checked) => {
@@ -156,14 +213,14 @@ function RequirementsPage() {
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   return (
-    <MainLayout>
-      <Box sx={{ mb: 3 }}>
-        <h1>Requirements</h1>
+    <MainLayout pageName="Requirements">
+      {/* Make debug output visible for troubleshooting */}
+      <Box sx={{ mb: 2, p: 2, backgroundColor: '#f0f0f0', display: loading ? 'block' : 'none' }}>
+        Debug: {loading ? 'Loading...' : `Showing ${issues.length} issues for ${activeRepoRef.current || 'unknown repo'}`}
       </Box>
-
-      {currentRepo ? (
+      
+      {currentRepo || externalRepo ? (
         <Grid container spacing={2}>
-          {/* Left column - Requirements List */}
           <Grid item xs={12}>
             <RequirementsHeader 
               onCreateNew={handleCreateRequirement}
@@ -235,4 +292,4 @@ function RequirementsPage() {
   );
 }
 
-export default RequirementsPage;
+export default Requirements;
