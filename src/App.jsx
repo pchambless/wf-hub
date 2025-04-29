@@ -6,7 +6,6 @@ import CommentModal from './components/Comments/CommentModal';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Requirements from './pages/Requirements';
 import Dashboard from './pages/Dashboard';
-import Workflows from './pages/Workflows';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme/theme';
@@ -48,14 +47,7 @@ function App() {
                   >
                     Requirements
                   </Button>
-                  <Button 
-                    color="inherit" 
-                    component={Link} 
-                    to="/workflows"
-                    sx={{ fontWeight: 500, mx: 2, fontSize: '1rem', color: '#4169E1' }}
-                  >
-                    Onboarding Guide
-                  </Button>
+
                   </Box>
 
                   {/* Third row: repo selector - streamlined */}
@@ -79,7 +71,6 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             {/* Force re-render on route change as well as repo change */}
             <Route path="/requirements" element={<Requirements />} />
-            <Route path="/workflows" element={<Workflows />} />
           </Routes>
         </Container>
         <CommentModal />

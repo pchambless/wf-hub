@@ -36,24 +36,30 @@ function Comment({ open, onClose, issueNumber, repoOwner, repoName, onSuccess })
     setComment(value || '');
   };
   
-  const handleSubmit = async () => {
-    if (!comment.trim() || !issueNumber || !repoOwner || !repoName) return;
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    
+    log.debug('Comment submission started', { 
+      issueNumber, 
+      repoOwner, 
+      repoName, 
+      commentLength: comment.length 
+    });
     
     setSubmitting(true);
     setError(null);
+    
     try {
+      console.log('Submitting comment to:', `${repoOwner}/${repoName}#${issueNumber}`);
       await createIssueComment(repoOwner, repoName, issueNumber, comment);
+      log.info('Comment submitted successfully');
       setComment('');
-      
-      // Call onSuccess callback if provided
-      if (typeof onSuccess === 'function') {
-        onSuccess();
-      }
-      
+      if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      console.error('Failed to submit comment', error);
-      setError('Failed to submit comment. Please try again.');
+      console.error('Failed to submit comment:', error);
+      setError(`Failed to submit comment: ${error.message}`);
+      log.error('Comment submission failed', { error: error.message });
     } finally {
       setSubmitting(false);
     }

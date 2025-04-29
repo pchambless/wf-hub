@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import process from 'process';
-import router from './routes/github.js';
 import fetch from 'node-fetch';  // You may need to install this
 
 // Load environment variables
@@ -40,9 +39,6 @@ const fetchFromGitHub = async (url) => {
   return fetch(url, { headers });
 };
 
-// GitHub API routes
-app.use('/api/github', router);
-
 // Add direct issues endpoint
 app.get('/api/github/issues/:owner/:repo', async (req, res) => {
   const { owner, repo } = req.params;
@@ -68,41 +64,53 @@ app.get('/api/github/issues/:owner/:repo', async (req, res) => {
   }
 });
 
-// Replace this line:
-let workflow;
-import('./routes/workflow.js').then(module => {
-  workflow = module.default || module;
-  
-  // If you're setting up routes with this module, do it here
-  app.use('/api/workflow', workflow);
-}).catch(err => {
-  console.error('Failed to import workflow module:', err);
-});
+// Replace the current dynamic import with this approach
+async function startServer() {
+  try {
+    // Import routes first
+    const githubModule = await import('./routes/github.js');
+    
+    
+    // Register routes
+    app.use('/api/github', githubModule.default);
+
+    
+    // Register error handlers and other middleware
+    // eslint-disable-next-line no-unused-vars
+    app.use((err, req, res, next) => {
+      console.error('Server error:', err);
+      res.status(500).json({ error: 'Internal server error', message: err.message });
+    });
+    // eslint-disable-next-line no-unused-vars
+    app.use((req, res, next) => {
+      console.log(`Route not found: ${req.method} ${req.url}`);
+      res.status(404).json({ error: 'Not found' });
+    });
+    
+    // Start the server AFTER all routes are registered
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`GitHub API available at http://localhost:${PORT}/api/github`);
+
+      
+      if (process.env.GITHUB_TOKEN) {
+        console.log('GitHub token is configured');
+      } else {
+        console.warn('GitHub token is not configured');
+      }
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Call the async function to start the server
+startServer();
 
 // Basic route
 app.get('/', (req, res) => {
   res.send('WhatsFresh GitHub API Server');
 });
 
-// General error handler
-app.use((err, req, res) => {
-  console.error('Server error:', err);
-  res.status(500).json({ error: 'Internal server error', message: err.message });
-});
-
-// Catch-all route for unhandled paths
-app.use((req, res) => {
-  console.log(`Route not found: ${req.method} ${req.url}`);
-  res.status(404).json({ error: 'Not found' });
-});
-
-// Start server
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`GitHub API available at http://localhost:${PORT}/api/github`);
-  console.log(`GitHub token ${GITHUB_TOKEN ? 'is' : 'is not'} configured`);
-}).on('error', (err) => {
-  console.error('Failed to start server:', err.message);
-});
-
-export default server;
+export default app;

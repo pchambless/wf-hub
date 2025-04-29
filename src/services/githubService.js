@@ -73,7 +73,8 @@ export async function fetchRepos() {  // Renamed for consistency
  */
 export const fetchIssues = async (owner, repo) => {
   try {
-    const response = await fetch(`/api/github/issues/${owner}/${repo}`);
+    // Use API_BASE_URL consistently
+    const response = await fetch(`${API_BASE_URL}/issues/${owner}/${repo}`);
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
@@ -152,8 +153,9 @@ export const fetchIssueComments = async (owner, repo, issueNumber) => {
  * Create a comment on an issue
  */
 export async function createIssueComment(owner, repo, issueNumber, body) {
-  log.info('Creating issue comment', { owner, repo, issueNumber });
+  log.info('Creating comment', { owner, repo, issueNumber });
   try {
+    // Fix the URL path to match your server's expected pattern
     const response = await fetch(`${API_BASE_URL}/issues/${owner}/${repo}/${issueNumber}/comments`, {
       method: 'POST',
       headers: {
@@ -161,14 +163,16 @@ export async function createIssueComment(owner, repo, issueNumber, body) {
       },
       body: JSON.stringify({ body }),
     });
+    
     if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
+      const errorText = await response.text();
+      log.error('Comment creation failed', { status: response.status, text: errorText });
+      throw new Error(`Failed to create comment: ${response.status}`);
     }
-    const data = await response.json();
-    log.info('Comment created', { id: data.id });
-    return data;
+    
+    return await response.json();
   } catch (error) {
-    log.error('Error creating comment', error);
+    log.error('Comment creation error', error);
     throw error;
   }
 }
@@ -179,7 +183,8 @@ export async function createIssueComment(owner, repo, issueNumber, body) {
 export async function createIssue(owner, repo, title, body, labels = []) {
   log.info('Creating issue', { owner, repo, title });
   try {
-    const response = await fetch(`${API_BASE_URL}/repos/${owner}/${repo}/issues`, {
+    // Changed from /repos/ to /issues/ to match server endpoint
+    const response = await fetch(`${API_BASE_URL}/issues/${owner}/${repo}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

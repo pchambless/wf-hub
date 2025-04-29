@@ -131,52 +131,29 @@ router.get('/issues/:owner/:repo/:issueNumber/comments', async (req, res) => {
 });
 
 // Make sure to include a route for posting comments too
-router.post('/issues/:owner/:repo/:issueNumber/comments', async (req, res) => {
-  const { owner, repo, issueNumber } = req.params;
-  const { body } = req.body;
-  
-  if (!body) {
-    return res.status(400).json({ error: 'Comment body is required' });
-  }
-  
+router.post('/issues/:owner/:repo/:issue_number/comments', async (req, res) => {
   try {
-    console.log(`Creating comment on ${owner}/${repo}#${issueNumber}`);
+    const { owner, repo, issue_number } = req.params;
+    const { body } = req.body;
     
-    const headers = {
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    };
+    console.log(`Creating comment on ${owner}/${repo}#${issue_number}`);
     
-    if (GITHUB_TOKEN) {
-      headers['Authorization'] = `token ${GITHUB_TOKEN}`;
-    } else {
-      return res.status(401).json({ error: 'GitHub token required to post comments' });
-    }
+    // Call GitHub API with proper auth
+    const response = await axios.post(
+      `https://api.github.com/repos/${owner}/${repo}/issues/${issue_number}/comments`,
+      { body },
+      {
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json'
+        }
+      }
+    );
     
-    const url = `https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ body })
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log(`Comment created on issue #${issueNumber}`);
-      res.json(data);
-    } else {
-      console.error(`GitHub API error ${response.status} creating comment`);
-      res.status(response.status).json({ 
-        error: `GitHub API error: ${response.status}`,
-        message: `Failed to create comment on issue #${issueNumber}` 
-      });
-    }
+    res.json(response.data);
   } catch (error) {
-    console.error(`Error creating comment: ${error.message}`);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
-    });
+    console.error('Comment creation error:', error.response?.data || error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -324,3 +301,7 @@ router.patch('/issues/:owner/:repo/:issue_number', async (req, res) => {
 // Issues details, comments, etc.
 
 export default router;
+
+// Check if your token is correctly loaded in your server code
+// This would likely be in a file like server/routes/github.js or similar
+console.log('Token validity check:', !!process.env.GITHUB_TOKEN);
