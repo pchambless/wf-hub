@@ -1,8 +1,7 @@
 import './App.css';
 import { Container, Typography, Box } from '@mui/material';
 import RepoSelector from './components/Repos/RepoSelector';
-import IssueDetail from './components/Issues/IssueDetail';
-import CommentModal from './components/Comments/CommentModal';
+
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Requirements from './pages/Requirements';
 import Dashboard from './pages/Dashboard';
@@ -73,7 +72,6 @@ function App() {
             <Route path="/requirements" element={<Requirements />} />
           </Routes>
         </Container>
-        <CommentModal />
       </Router>
     </ThemeProvider>
   );

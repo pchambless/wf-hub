@@ -13,7 +13,7 @@ import {
   ListItemSecondaryAction
 } from '@mui/material';
 import { setVar, triggerAction, useActionTrigger, usePollVar } from '../../utils/externalStore';
-import { fetchIssues } from '../../services/githubService';
+import { fetchIssues } from '../../services/github';
 import createLogger from '../../utils/logger';
 
 const log = createLogger('IssueList');

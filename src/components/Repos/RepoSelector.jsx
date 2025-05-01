@@ -9,32 +9,31 @@ import {
   Box 
 } from '@mui/material';
 import { setVar, triggerAction } from '../../utils/externalStore';
-import { getAvailableRepos, initGitHubService } from '../../services/githubService';
+import { getAvailableRepos } from '../../services/github';
 import createLogger from '../../utils/logger';
 
 const log = createLogger('RepoSelector');
 
 function RepoSelector() {
-  const [repos, setRepos] = useState([]);
+  const [repos, setRepos] = useState([]);  // Initialize as empty array
   const [selectedRepo, setSelectedRepo] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function initialize() {
-      setLoading(true);
+    async function loadRepos() {
       try {
-        await initGitHubService();
-        const availableRepos = getAvailableRepos();
-        setRepos(availableRepos);
-      } catch (err) {
-        setError('Failed to load repos');
-        log.error('Error initializing repo list', err);
+        const data = await getAvailableRepos();
+        // Ensure we always set an array, even if the API returns something else
+        setRepos(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to load repositories', error);
+        setRepos([]); // Set empty array on error
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     
-    initialize();
+    loadRepos();
   }, []);
 
   const handleSelectRepo = (event) => {
@@ -72,8 +71,6 @@ function RepoSelector() {
       
       {loading ? (
         <CircularProgress size={20} sx={{ ml: 2 }} />
-      ) : error ? (
-        <Alert severity="error" sx={{ flexGrow: 1 }}>{error}</Alert>
       ) : (
         <FormControl fullWidth size="small" sx={{ backgroundColor: '#dcfce7', borderRadius: 1 }}>
           <Select

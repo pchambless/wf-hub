@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Typography, Box, Paper, Grid, CircularProgress } from '@mui/material';
 import { useStore } from '../../store/store';
-import { fetchIssues } from '../../services/githubService';
+import { fetchIssues } from '../../services/github';
 
 function RepoStats() {
   const [stats, setStats] = useState({

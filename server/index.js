@@ -68,7 +68,7 @@ app.get('/api/github/issues/:owner/:repo', async (req, res) => {
 async function startServer() {
   try {
     // Import routes first
-    const githubModule = await import('./routes/github.js');
+    const githubModule = await import('./routes/github/index.js');
     
     
     // Register routes

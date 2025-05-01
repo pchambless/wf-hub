@@ -1,50 +1,38 @@
 import { 
-  Table, TableBody, TableCell, TableContainer, TableHead, 
-  TableRow, Checkbox, Chip, CircularProgress
+  TableContainer, 
+  Table, 
+  TableHead, 
+  TableBody, 
+  TableRow, 
+  TableCell, 
+  Chip, 
+  IconButton, 
+  Tooltip, 
+  CircularProgress, 
+  Box, 
+  Typography
 } from '@mui/material';
-import RequirementActions from './RequirementActions';
+import EditIcon from '@mui/icons-material/Edit';
 
 function RequirementsList({ 
-  issues, 
-  loading, 
-  selected, 
-  onSelect, 
-  onSelectAll, 
-  onEdit, 
-  onPreview, 
-  onComment,
-  onDownload
+  issues = [], 
+  loading = false,
+  onEdit
 }) {
-  console.log('RequirementsList rendering with:', { 
-    issuesCount: issues?.length || 0,
-    loading,
-    selectedCount: Object.values(selected || {}).filter(Boolean).length
-  });
-  
-  // Log first issue for debugging if available
-  if (issues?.length > 0) {
-    console.log('First issue:', issues[0]);
+  // Display empty state when no issues are available
+  if (!issues.length && !loading) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography>No issues found in this repository</Typography>
+      </Box>
+    );
   }
-  
-  // Calculate if all items are selected
-  const allSelected = issues.length > 0 && 
-    issues.every(issue => selected[issue.number] === true);
-  
-  // Calculate if some items are selected
-  const someSelected = issues.some(issue => selected[issue.number] === true) && !allSelected;
 
   return (
     <TableContainer>
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell padding="checkbox">
-              <Checkbox 
-                indeterminate={someSelected}
-                checked={allSelected}
-                onChange={(e) => onSelectAll(e.target.checked)}
-              />
-            </TableCell>
             <TableCell sx={{ width: '80px' }}>#</TableCell>
             <TableCell>Title</TableCell>
             <TableCell>Status</TableCell>
@@ -55,67 +43,53 @@ function RequirementsList({
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                <CircularProgress size={24} />
-              </TableCell>
-            </TableRow>
-          ) : issues.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                No requirements found
+              <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 3 }}>
+                  <CircularProgress size={24} />
+                  <Typography variant="body2" sx={{ ml: 2 }}>
+                    Loading requirements...
+                  </Typography>
+                </Box>
               </TableCell>
             </TableRow>
           ) : (
-            issues.map(issue => {
-              const isItemSelected = !!selected[issue.number];
-              
-              return (
-                <TableRow 
-                  key={issue.number}
-                  hover
-                  selected={isItemSelected}
-                >
-                  <TableCell padding="checkbox">
-                    <Checkbox 
-                      checked={isItemSelected}
-                      onChange={(e) => onSelect(issue.number, e.target.checked)}
-                    />
-                  </TableCell>
-                  <TableCell>{issue.number}</TableCell>
-                  <TableCell>{issue.title}</TableCell>
-                  <TableCell>
+            issues.map(issue => (
+              <TableRow 
+                key={issue.number} 
+                hover
+              >
+                <TableCell>{issue.number}</TableCell>
+                <TableCell>{issue.title}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={issue.state} 
+                    color={issue.state === 'open' ? 'success' : 'default'}
+                    size="small" 
+                  />
+                </TableCell>
+                <TableCell>
+                  {issue.labels && issue.labels.map(label => (
                     <Chip 
-                      label={issue.state} 
-                      color={issue.state === 'open' ? 'success' : 'default'}
-                      size="small" 
+                      key={label.id || label.name}
+                      label={label.name}
+                      size="small"
+                      sx={{ 
+                        mr: 0.5, 
+                        backgroundColor: `#${label.color || '888888'}`,
+                        color: label.color && parseInt(label.color, 16) > 0x7FFFFF ? '#000' : '#fff'
+                      }} 
                     />
-                  </TableCell>
-                  <TableCell>
-                    {issue.labels.map(label => (
-                      <Chip 
-                        key={label.id}
-                        label={label.name}
-                        size="small"
-                        sx={{ 
-                          mr: 0.5, 
-                          backgroundColor: `#${label.color}`,
-                          color: parseInt(label.color, 16) > 0x7FFFFF ? '#000' : '#fff'
-                        }} 
-                      />
-                    ))}
-                  </TableCell>
-                  <TableCell align="right" sx={{ py: 0.5 }}>
-                    <RequirementActions 
-                      issue={issue}
-                      onEdit={onEdit}
-                      onPreview={onPreview}
-                      onComment={onComment}
-                      onDownload={onDownload}
-                    />
-                  </TableCell>
-                </TableRow>
-              );
-            })
+                  ))}
+                </TableCell>
+                <TableCell align="right" sx={{ py: 0.5 }}>
+                  <Tooltip title="Edit Requirement">
+                    <IconButton onClick={() => onEdit && onEdit(issue)}>
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))
           )}
         </TableBody>
       </Table>

@@ -24,7 +24,7 @@ import {
   BugReport as BugIcon 
 } from '@mui/icons-material';
 import { usePollVar, useActionTrigger, triggerAction, setVar } from '../../utils/externalStore';
-import { fetchIssueDetails, fetchIssueComments } from '../../services/githubService';
+import { fetchIssueDetails, fetchComments as fetchIssueComments } from '../../services/github';
 import createLogger from '../../utils/logger';
 import ReactMarkdown from 'react-markdown';
 

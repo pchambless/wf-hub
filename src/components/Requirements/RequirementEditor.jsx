@@ -12,12 +12,12 @@ import {
   createIssue, 
   updateIssue, 
   fetchIssueComments, 
-  createIssueComment 
-} from '../../services/githubService';
-import { downloadSelectedIssues } from '../../services/downloadService';
+  createIssueComment, 
+  downloadIssue } from '../../services/github';
 import { formatRequirementMarkdown } from '../../utils/requirementUtils';
 import { useStore } from '../../store/store';
 import createLogger from '../../utils/logger';
+import { usePollVar } from '../../utils/externalStore';
 
 const log = createLogger('RequirementEditor');
 
@@ -42,7 +42,13 @@ Any other notes or comments
 `;
 
 function RequirementEditor({ open, initialData, onClose, onSuccess }) {
-  const { currentRepo } = useStore();
+  // Get repo from both sources, like in Requirements.jsx
+  const { currentRepo: reduxRepo } = useStore();
+  const externalRepo = usePollVar(':currentRepo');
+  
+  // Use whichever repo is available, preferring the external one
+  const currentRepo = externalRepo || reduxRepo;
+  
   const [title, setTitle] = useState('');
   const [content, setContent] = useState(REQUIREMENT_TEMPLATE);
   const [activeTab, setActiveTab] = useState(0);
@@ -118,88 +124,135 @@ const fetchCommentsData = async (owner, repo, issueNumber) => {
 };
   
   const handleTabChange = (event, newValue) => {
+    // Only allow valid tab selections based on mode
+    if (isNew && newValue > 1) {
+      return; // In new mode, only tabs 0 and 1 exist
+    }
     setActiveTab(newValue);
   };
   
-  const handleSubmit = async () => {
-    if (!title.trim() || !currentRepo?.owner || !currentRepo?.name) return;
-    
-    setSubmitting(true);
-    setError(null);
-    setSuccess(null);
-    
-    try {
-      let result;
-      
-      if (!isNew) {
-        result = await updateIssue(
-          currentRepo.owner, 
-          currentRepo.name, 
-          initialData.number, 
-          { title, body: content }
-        );
-        setSuccess(`Requirement #${initialData.number} updated successfully`);
-      } else {
-        result = await createIssue(
-          currentRepo.owner,
-          currentRepo.name,
-          { title, body: content }
-        );
-        setSuccess(`Requirement #${result.number} created successfully`);
-      }
-      
-      log.info(`Requirement ${isNew ? 'created' : 'updated'}`, { 
-        id: result.id,
-        number: result.number
-      });
-      
-      // Wait a moment to show success message
-      setTimeout(() => {
-        if (typeof onSuccess === 'function') {
-          onSuccess();
-        }
-      }, 1500);
-      
-    } catch (error) {
-      log.error('Failed to save requirement', error);
-      setError(`Failed to ${isNew ? 'create' : 'update'} requirement: ${error.message}`);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // Update handleSubmit to keep the editor open after submission
+const handleSubmit = async () => {
+  if (!title.trim() || !currentRepo?.owner || !currentRepo?.name) {
+    log.warn('Submit validation failed', { 
+      title, 
+      reduxRepo,
+      externalRepo,
+      currentRepo 
+    });
+    return;
+  }
   
-  const handleDownload = async () => {
-    if (!currentRepo || isNew) return;
+  log.info('Attempting to submit requirement', { 
+    isNew, 
+    owner: currentRepo.owner, 
+    repo: currentRepo.name,
+    number: initialData?.number,
+    title
+  });
+  
+  setSubmitting(true);
+  setError(null);
+  setSuccess(null);
+  
+  try {
+    let result;
     
-    setDownloadOptions(prev => ({ ...prev, loading: true, result: null }));
-    
-    try {
-      const result = await downloadSelectedIssues(
-        currentRepo,
-        [initialData.number],
-        localStorage.getItem('githubToken')
+    if (!isNew) {
+      result = await updateIssue(
+        currentRepo.owner, 
+        currentRepo.name, 
+        initialData.number, 
+        { title, body: content }
       );
+      log.info('Requirement updated successfully', { number: initialData.number, result });
+      setSuccess(`Requirement #${initialData.number} updated successfully`);
       
-      setDownloadOptions(prev => ({ 
-        ...prev, 
-        loading: false, 
-        result: {
-          success: true,
-          message: `Successfully downloaded to ${result.path}`,
-          files: result.files
-        }
-      }));
-    } catch (error) {
-      setDownloadOptions(prev => ({ 
-        ...prev, 
-        loading: false, 
-        result: {
-          success: false,
-          message: `Error: ${error.message}`
-        }
-      }));
+      // Update initialData with the returned data so it reflects the latest changes
+      if (result && typeof onSuccess === 'function') {
+        // Just notify parent that data changed, but don't close
+        onSuccess(result, false);
+      }
+    } else {
+      result = await createIssue(
+        currentRepo.owner,
+        currentRepo.name,
+        { title, body: content }
+      );
+      log.info('Requirement created successfully', { number: result.number, result });
+      setSuccess(`Requirement #${result.number} created successfully`);
+      
+      // For new requirements, update to edit mode with the created data
+      if (result && typeof onSuccess === 'function') {
+        // For new requirements, we might want to close and reopen in edit mode
+        onSuccess(result, true);
+      }
     }
-  };
+    
+    // No longer auto-closing the dialog
+    
+  } catch (error) {
+    log.error('Failed to save requirement', error);
+    setError(`Failed to ${isNew ? 'create' : 'update'} requirement: ${error.message}`);
+  } finally {
+    setSubmitting(false);
+  }
+};
+  
+  // Update handleDownload with proper logging
+const handleDownload = async () => {
+  if (!currentRepo || isNew) {
+    log.warn('Download prerequisites not met', { currentRepo, isNew });
+    return;
+  }
+  
+  log.info('Starting requirement download', { 
+    number: initialData.number,
+    destination: downloadOptions.destination,
+    includeComments: downloadOptions.includeComments
+  });
+  
+  setDownloadOptions(prev => ({ ...prev, loading: true, result: null }));
+  
+  try {
+    // Updated implementation:
+    const result = await downloadIssue(
+      currentRepo,
+      initialData.number,  // Single number, not array
+      {
+        includeComments: downloadOptions.includeComments,
+        destination: downloadOptions.destination
+      }
+    );
+    
+    log.info('Download completed successfully', { 
+      number: initialData.number,
+      path: result.path,
+      files: result.files?.length
+    });
+    
+    setDownloadOptions(prev => ({ 
+      ...prev, 
+      loading: false, 
+      result: {
+        success: true,
+        message: `Successfully downloaded to ${result.path}`,
+        files: result.files
+      }
+    }));
+  } catch (error) {
+    log.error('Download failed', { error: error.message, stack: error.stack });
+    
+    setDownloadOptions(prev => ({ 
+      ...prev, 
+      loading: false, 
+      result: {
+        success: false,
+        message: `Error: ${error.message}`
+      }
+    }));
+  }
+};
   
   const handleSubmitComment = async () => {
     if (!commentText.trim() || !currentRepo?.owner || !currentRepo?.name || !initialData?.number) {
@@ -526,14 +579,32 @@ const fetchCommentsData = async (owner, repo, issueNumber) => {
         </Button>
         
         {activeTab === 0 && (
-          <Button 
-            onClick={handleSubmit}
-            variant="contained" 
-            color="primary"
-            disabled={!title.trim() || submitting}
-          >
-            {submitting ? <CircularProgress size={24} /> : isNew ? 'Create' : 'Update'}
-          </Button>
+          <>
+            <Button 
+              onClick={handleSubmit}
+              variant="contained" 
+              color="primary"
+              disabled={!title.trim() || submitting}
+            >
+              {submitting ? <CircularProgress size={24} /> : isNew ? 'Create' : 'Update'}
+            </Button>
+            
+            {!isNew && (
+              <Button 
+                onClick={() => {
+                  handleSubmit().then(() => {
+                    // Close after successful update
+                    setTimeout(() => onClose(), 1500);
+                  });
+                }}
+                variant="contained" 
+                color="secondary"
+                disabled={!title.trim() || submitting}
+              >
+                Update & Close
+              </Button>
+            )}
+          </>
         )}
         
         {activeTab === 3 && !isNew && (
