@@ -60,7 +60,7 @@ function IssueList() {
     }
     
     setSelectedIssues(newSelectedIssues);
-    setVar('selectedIssues', newSelectedIssues);
+    setVars('selectedIssues', newSelectedIssues);
     triggerAction('ISSUE_SELECTED');
     
     log.info('Issue selection changed', { 

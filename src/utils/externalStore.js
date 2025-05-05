@@ -202,7 +202,7 @@ const usePollVar = (varName, defaultValue = null, interval = 100, debug = false)
 };
 
 const triggerAction = (actionName, payload = Date.now()) => {
-  setVar(`%${actionName}`, payload);
+  setVars(`%${actionName}`, payload);
 };
 
 const useActionTrigger = (actionName, defaultValue = null) => {

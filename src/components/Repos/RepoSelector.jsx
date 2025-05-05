@@ -8,7 +8,7 @@ import {
   Alert, 
   Box 
 } from '@mui/material';
-import { setVar, triggerAction } from '../../utils/externalStore';
+import { setVars, triggerAction } from '../../utils/externalStore';
 import { getAvailableRepos } from '../../services/github';
 import createLogger from '../../utils/logger';
 
@@ -44,7 +44,7 @@ function RepoSelector() {
       setSelectedRepo(repoName);
       
       // Fix: Use colon prefix to match usePollVar(':currentRepo') in Requirements.jsx
-      setVar(':currentRepo', repo);
+      setVars(':currentRepo', repo);
       
       // Keep the action name as is - only the variable name needs the colon prefix
       triggerAction('REPO_SELECTED');

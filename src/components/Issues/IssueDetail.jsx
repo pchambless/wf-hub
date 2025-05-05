@@ -82,7 +82,7 @@ function IssueDetail() {
 
   const handleAddComment = () => {
     if (currentRepo && selectedIssueNumber) {
-      setVar('commentIssue', selectedIssue);
+      setVars('commentIssue', selectedIssue);
       triggerAction('OPEN_COMMENT_MODAL');
       log.info('Opening comment modal', { issueNumber: selectedIssueNumber });
     }
